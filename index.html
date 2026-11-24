@@ -48,7 +48,7 @@
     <div class="year">2027</div>
   </div>
   <h1>Pedidos de DJs</h1>
-  <p class="sub">Elige tu nombre, pon tu PIN y escribe tu pedido. Llega directo al equipo XTD.</p>
+  <p class="sub">Elige tu nombre, pon el PIN del grupo y escribe tu pedido. Llega directo al equipo XTD.</p>
 
   <form id="form" novalidate>
     <div class="field">
@@ -111,10 +111,7 @@
           });
           try {
             var guardado = localStorage.getItem(KEY);
-            if (guardado && nombres.indexOf(guardado) >= 0) {
-              sel.value = guardado;
-              pinEl.value = localStorage.getItem(KEY_PIN) || '';
-            }
+            if (guardado && nombres.indexOf(guardado) >= 0) sel.value = guardado;
           } catch (e) {}
         })
         .catch(function () {
@@ -125,15 +122,8 @@
 
     txt.addEventListener('input', function () { cont.textContent = txt.value.length + ' / 2000'; });
     pinEl.addEventListener('input', function () { pinEl.value = pinEl.value.replace(/\D/g, '').slice(0, 4); });
-    // Al cambiar de nombre, el PIN guardado de otra persona no debe quedarse puesto.
-    sel.addEventListener('change', function () {
-      var guardado = null;
-      try { guardado = localStorage.getItem(KEY); } catch (e) {}
-      pinEl.value = '';
-      if (sel.value && sel.value === guardado) {
-        try { pinEl.value = localStorage.getItem(KEY_PIN) || ''; } catch (e) {}
-      }
-    });
+    // El PIN es el mismo para todo el grupo: se recuerda aparte del nombre.
+    try { pinEl.value = localStorage.getItem(KEY_PIN) || ''; } catch (e) {}
 
     document.getElementById('form').addEventListener('submit', function (e) {
       e.preventDefault();
