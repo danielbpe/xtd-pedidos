@@ -21,9 +21,13 @@
   h1{font-size:22px;margin:14px 0 4px;text-align:center;letter-spacing:.3px}
   .sub{color:var(--muted);font-size:13px;text-align:center;margin:0 0 22px;line-height:1.45}
   label{display:block;font-size:11px;font-weight:800;letter-spacing:1.4px;color:#a8c3e3;margin:0 0 7px}
-  select,textarea{width:100%;font:inherit;font-size:16px;color:var(--text);background:#081229;border:1px solid var(--stroke2);border-radius:13px;padding:13px 14px;outline:none;transition:border-color .15s,box-shadow .15s}
+  select,textarea,input{width:100%;font:inherit;font-size:16px;color:var(--text);background:#081229;border:1px solid var(--stroke2);border-radius:13px;padding:13px 14px;outline:none;transition:border-color .15s,box-shadow .15s}
   select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,#8fb3e0 50%),linear-gradient(135deg,#8fb3e0 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:38px}
-  select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #65d9ff33}
+  select:focus,textarea:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #65d9ff33}
+  #pin{letter-spacing:10px;font-size:20px;font-weight:800;text-align:center;max-width:180px;display:block}
+  #pin::placeholder{letter-spacing:6px;font-weight:400;color:#5d7aa0}
+  .recordar{display:flex;align-items:center;gap:8px;color:#9fb6d6;font-size:12px;font-weight:600;letter-spacing:0;margin:9px 0 0;cursor:pointer}
+  .recordar input{width:auto;accent-color:#1e7bff}
   textarea{min-height:170px;resize:vertical;line-height:1.45}
   .field{margin-bottom:18px}
   .hint{display:flex;justify-content:space-between;gap:10px;color:#7f9cc0;font-size:11px;margin-top:6px}
@@ -44,7 +48,7 @@
     <div class="year">2027</div>
   </div>
   <h1>Pedidos de DJs</h1>
-  <p class="sub">Elige tu nombre y escribe tu pedido. Llega directo al equipo XTD.</p>
+  <p class="sub">Elige tu nombre, pon tu PIN y escribe tu pedido. Llega directo al equipo XTD.</p>
 
   <form id="form" novalidate>
     <div class="field">
@@ -52,6 +56,11 @@
       <select id="nombre" required>
         <option value="">Cargando nombres…</option>
       </select>
+    </div>
+    <div class="field">
+      <label for="pin">PIN</label>
+      <input id="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="••••" required>
+      <label class="recordar"><input id="recordar" type="checkbox" checked> Recordar nombre y PIN en este dispositivo</label>
     </div>
     <div class="field">
       <label for="pedido">PEDIDOS</label>
@@ -70,7 +79,10 @@
   var API = 'https://script.google.com/macros/s/AKfycbwIGRHCr51cQJhaH4rvAf6hoRURDrbGwpIP7AuEVuwW3uLeqoVuXA44adxQx1OeDrwm/exec';
   (function () {
     var KEY = 'xtd2027.pedidos.nombre';
+    var KEY_PIN = 'xtd2027.pedidos.pin';
     var sel = document.getElementById('nombre');
+    var pinEl = document.getElementById('pin');
+    var recordar = document.getElementById('recordar');
     var txt = document.getElementById('pedido');
     var btn = document.getElementById('enviar');
     var msg = document.getElementById('msg');
@@ -99,7 +111,10 @@
           });
           try {
             var guardado = localStorage.getItem(KEY);
-            if (guardado && nombres.indexOf(guardado) >= 0) sel.value = guardado;
+            if (guardado && nombres.indexOf(guardado) >= 0) {
+              sel.value = guardado;
+              pinEl.value = localStorage.getItem(KEY_PIN) || '';
+            }
           } catch (e) {}
         })
         .catch(function () {
@@ -109,27 +124,47 @@
     }
 
     txt.addEventListener('input', function () { cont.textContent = txt.value.length + ' / 2000'; });
+    pinEl.addEventListener('input', function () { pinEl.value = pinEl.value.replace(/\D/g, '').slice(0, 4); });
+    // Al cambiar de nombre, el PIN guardado de otra persona no debe quedarse puesto.
+    sel.addEventListener('change', function () {
+      var guardado = null;
+      try { guardado = localStorage.getItem(KEY); } catch (e) {}
+      pinEl.value = '';
+      if (sel.value && sel.value === guardado) {
+        try { pinEl.value = localStorage.getItem(KEY_PIN) || ''; } catch (e) {}
+      }
+    });
 
     document.getElementById('form').addEventListener('submit', function (e) {
       e.preventDefault();
-      var nombre = sel.value, pedido = txt.value.trim();
+      var nombre = sel.value, pin = pinEl.value.trim(), pedido = txt.value.trim();
       if (!nombre) { mostrar('Elige tu nombre de la lista.', false); sel.focus(); return; }
+      if (!/^\d{4}$/.test(pin)) { mostrar('Escribe tu PIN de 4 números.', false); pinEl.focus(); return; }
       if (!pedido) { mostrar('Escribe tu pedido.', false); txt.focus(); return; }
       btn.disabled = true; btn.textContent = 'Enviando…'; msg.className = 'msg';
       fetch(API, {
         method: 'POST',
         credentials: 'omit',
-        body: JSON.stringify({ accion: 'enviar', nombre: nombre, pedido: pedido })
+        body: JSON.stringify({ accion: 'enviar', nombre: nombre, pin: pin, pedido: pedido })
       })
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (!data || !data.ok) throw new Error((data && data.error) || 'No se pudo enviar.');
-          try { localStorage.setItem(KEY, nombre); } catch (e) {}
+          try {
+            if (recordar.checked) { localStorage.setItem(KEY, nombre); localStorage.setItem(KEY_PIN, pin); }
+            else { localStorage.removeItem(KEY); localStorage.removeItem(KEY_PIN); }
+          } catch (e) {}
           txt.value = ''; cont.textContent = '0 / 2000';
           mostrar('¡Listo, ' + nombre + '! Tu pedido fue enviado.', true);
         })
         .catch(function (err) {
-          mostrar(err && err.message && err.message !== 'Failed to fetch' ? err.message : 'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.', false);
+          var m = err && err.message && err.message !== 'Failed to fetch' ? err.message : 'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.';
+          if (/PIN incorrecto/.test(m)) {
+            pinEl.value = '';
+            try { localStorage.removeItem(KEY_PIN); } catch (e) {}
+            pinEl.focus();
+          }
+          mostrar(m, false);
         })
         .then(function () { btn.disabled = false; btn.textContent = 'Enviar pedido'; });
     });
