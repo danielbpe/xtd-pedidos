@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>XTD 2027 · Pedidos</title>
+<meta property="og:title" content="XTD 2027 · Pedidos de DJs">
+<meta property="og:description" content="Elige tu nombre y escribe tu pedido.">
+<meta property="og:image" content="https://danielbpe.github.io/xtd-pedidos/logo.webp">
+<link rel="icon" href="logo.webp">
+<style>
+  :root{--bg:#030719;--stroke:#243c67;--stroke2:#3d5f95;--text:#eef6ff;--muted:#9fb6d6;--cyan:#65d9ff;--green:#55edb8;--red:#ff9cae}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:radial-gradient(ellipse 90% 60% at 70% 0%,#0b2a6b66,transparent 70%),radial-gradient(ellipse 70% 50% at 0% 100%,#0a3d8f40,transparent 70%),var(--bg);min-height:100vh;padding:28px 16px 40px}
+  .card{width:100%;max-width:460px;margin:0 auto;background:linear-gradient(160deg,#0d2047f0,#0a1530f2);border:1px solid var(--stroke);border-radius:22px;padding:24px 22px 22px;box-shadow:0 30px 80px #000a,0 0 60px #1e7bff22}
+  .brand{text-align:center;margin-bottom:6px}
+  .brand img{width:100%;max-width:300px;height:auto;display:block;margin:0 auto;-webkit-mask-image:radial-gradient(ellipse 70% 72% at 50% 50%,#000 58%,transparent 100%);mask-image:radial-gradient(ellipse 70% 72% at 50% 50%,#000 58%,transparent 100%)}
+  .year{color:var(--cyan);font-style:italic;font-weight:900;letter-spacing:3px;text-shadow:0 0 14px #1474ff;margin-top:-4px}
+  h1{font-size:22px;margin:14px 0 4px;text-align:center;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:13px;text-align:center;margin:0 0 22px;line-height:1.45}
+  label{display:block;font-size:11px;font-weight:800;letter-spacing:1.4px;color:#a8c3e3;margin:0 0 7px}
+  select,textarea{width:100%;font:inherit;font-size:16px;color:var(--text);background:#081229;border:1px solid var(--stroke2);border-radius:13px;padding:13px 14px;outline:none;transition:border-color .15s,box-shadow .15s}
+  select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,#8fb3e0 50%),linear-gradient(135deg,#8fb3e0 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:38px}
+  select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #65d9ff33}
+  textarea{min-height:170px;resize:vertical;line-height:1.45}
+  .field{margin-bottom:18px}
+  .hint{display:flex;justify-content:space-between;gap:10px;color:#7f9cc0;font-size:11px;margin-top:6px}
+  button{width:100%;font:inherit;font-size:16px;font-weight:800;color:#fff;border:1px solid #4aa3ff;border-radius:14px;padding:15px;cursor:pointer;background:linear-gradient(100deg,#1e7bff,#1158d8);box-shadow:0 10px 30px #1e7bff44}
+  button:hover{filter:brightness(1.08)}
+  button:disabled{opacity:.6;cursor:wait}
+  .msg{display:none;margin-top:16px;padding:13px 14px;border-radius:13px;font-size:14px;line-height:1.4}
+  .msg.show{display:block}
+  .msg.ok{background:#0d42357e;border:1px solid #137657;color:var(--green)}
+  .msg.err{background:#4823338c;border:1px solid #803e59;color:var(--red)}
+  .foot{color:#6f8cb2;font-size:11px;text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="brand">
+    <img alt="XTD" src="logo.webp" width="640" height="320">
+    <div class="year">2027</div>
+  </div>
+  <h1>Pedidos de DJs</h1>
+  <p class="sub">Elige tu nombre y escribe tu pedido. Llega directo al equipo XTD.</p>
+
+  <form id="form" novalidate>
+    <div class="field">
+      <label for="nombre">NOMBRE</label>
+      <select id="nombre" required>
+        <option value="">Cargando nombres…</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="pedido">PEDIDOS</label>
+      <textarea id="pedido" maxlength="2000" required placeholder="Ej.: Bad Bunny - Tití Me Preguntó (edit 95 BPM)&#10;Puedes poner varios, uno por línea."></textarea>
+      <div class="hint"><span>Uno o varios temas, como prefieras.</span><span id="contador">0 / 2000</span></div>
+    </div>
+    <button id="enviar" type="submit">Enviar pedido</button>
+    <div id="msg" class="msg" role="status" aria-live="polite"></div>
+  </form>
+  <p class="foot">XTD 2027 · Playlist Manager</p>
+</main>
+
+<script>
+  // Script de Google (Hoja "XTD 2027 · Pedidos"). La petición va sin cookies,
+  // así que funciona aunque el navegador tenga varias cuentas de Google abiertas.
+  var API = 'https://script.google.com/macros/s/AKfycbwIGRHCr51cQJhaH4rvAf6hoRURDrbGwpIP7AuEVuwW3uLeqoVuXA44adxQx1OeDrwm/exec';
+  (function () {
+    var KEY = 'xtd2027.pedidos.nombre';
+    var sel = document.getElementById('nombre');
+    var txt = document.getElementById('pedido');
+    var btn = document.getElementById('enviar');
+    var msg = document.getElementById('msg');
+    var cont = document.getElementById('contador');
+    var nombres = [];
+
+    function mostrar(texto, ok) {
+      msg.textContent = texto;
+      msg.className = 'msg show ' + (ok ? 'ok' : 'err');
+    }
+
+    function cargarNombres() {
+      fetch(API + '?api=djs', { credentials: 'omit' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data || !data.ok || !Array.isArray(data.djs)) throw new Error('lista');
+          nombres = data.djs;
+          sel.innerHTML = '';
+          var vacio = document.createElement('option');
+          vacio.value = ''; vacio.textContent = 'Elige tu nombre…';
+          sel.appendChild(vacio);
+          nombres.forEach(function (n) {
+            var o = document.createElement('option');
+            o.value = n; o.textContent = n;
+            sel.appendChild(o);
+          });
+          try {
+            var guardado = localStorage.getItem(KEY);
+            if (guardado && nombres.indexOf(guardado) >= 0) sel.value = guardado;
+          } catch (e) {}
+        })
+        .catch(function () {
+          sel.innerHTML = '<option value="">No se pudo cargar la lista</option>';
+          mostrar('No se pudo cargar la lista de nombres. Revisa tu conexión y recarga la página.', false);
+        });
+    }
+
+    txt.addEventListener('input', function () { cont.textContent = txt.value.length + ' / 2000'; });
+
+    document.getElementById('form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var nombre = sel.value, pedido = txt.value.trim();
+      if (!nombre) { mostrar('Elige tu nombre de la lista.', false); sel.focus(); return; }
+      if (!pedido) { mostrar('Escribe tu pedido.', false); txt.focus(); return; }
+      btn.disabled = true; btn.textContent = 'Enviando…'; msg.className = 'msg';
+      fetch(API, {
+        method: 'POST',
+        credentials: 'omit',
+        body: JSON.stringify({ accion: 'enviar', nombre: nombre, pedido: pedido })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data || !data.ok) throw new Error((data && data.error) || 'No se pudo enviar.');
+          try { localStorage.setItem(KEY, nombre); } catch (e) {}
+          txt.value = ''; cont.textContent = '0 / 2000';
+          mostrar('¡Listo, ' + nombre + '! Tu pedido fue enviado.', true);
+        })
+        .catch(function (err) {
+          mostrar(err && err.message && err.message !== 'Failed to fetch' ? err.message : 'No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.', false);
+        })
+        .then(function () { btn.disabled = false; btn.textContent = 'Enviar pedido'; });
+    });
+
+    cargarNombres();
+  })();
+</script>
+</body>
+</html>
